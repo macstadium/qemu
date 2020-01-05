@@ -710,10 +710,18 @@ static int kvm_arch_set_tsc_khz(CPUState *cs)
         int cur_freq = kvm_check_extension(cs->kvm_state, KVM_CAP_GET_TSC_KHZ) ?
                        kvm_vcpu_ioctl(cs, KVM_GET_TSC_KHZ) :
                        -ENOTSUP;
-        if (cur_freq <= 0 || cur_freq != env->tsc_khz) {
+	double tsc_freq_max = (double)((cur_freq > env->tsc_khz) ? cur_freq : env->tsc_khz);
+	double tsc_freq_min = (double)((cur_freq < env->tsc_khz) ? cur_freq : env->tsc_khz);
+	double percent_diff = 1 - (tsc_freq_max/tsc_freq_min);
+
+	if(percent_diff < 0.0) {
+		percent_diff *= -1;		
+	}
+
+        if (cur_freq <= 0 || percent_diff > 0.01) {
             warn_report("TSC frequency mismatch between "
                         "VM (%" PRId64 " kHz) and host (%d kHz), "
-                        "and TSC scaling unavailable",
+                        "and TSC scaling unavailable. TSC frequencies must be within 1 percent of each other",
                         env->tsc_khz, cur_freq);
             return r;
         }
@@ -1661,6 +1669,7 @@ int kvm_arch_init_vcpu(CPUState *cs)
         has_msr_mcg_ext_ctl = has_msr_feature_control = true;
     }
 
+    /*
     if (!env->user_tsc_khz) {
         if ((env->features[FEAT_8000_0007_EDX] & CPUID_APM_INVTSC) &&
             invtsc_mig_blocker == NULL) {
@@ -1675,6 +1684,7 @@ int kvm_arch_init_vcpu(CPUState *cs)
             }
         }
     }
+    */
 
     if (cpu->vmware_cpuid_freq
         /* Guests depend on 0x40000000 to detect this feature, so only expose
