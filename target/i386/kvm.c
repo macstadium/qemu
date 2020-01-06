@@ -1381,7 +1381,7 @@ int kvm_arch_init_vcpu(CPUState *cs)
     int kvm_base = KVM_CPUID_SIGNATURE;
     int max_nested_state_len;
     int r;
-    Error *local_err = NULL;
+    //Error *local_err = NULL;
 
     memset(&cpuid_data, 0, sizeof(cpuid_data));
 
